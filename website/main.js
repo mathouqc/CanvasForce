@@ -7,11 +7,11 @@ window.onload = () => {
 }
 
 function mainApp() {
-    let mainBall = new Ball(ch)
-    ch.spriteList.push(mainBall)
+    let ball1 = new Ball(ch)
+    ch.spriteList.push(ball1)
 
-    mainBall.physic.position.setXY({x: (ch.canvasElement.width/2+500), y: (ch.canvasElement.height/2)})
-    mainBall.physic.setForce("GravitationalForce", new Vector2d({x: 0, y: 200}))
+    ball1.physic.position.setXY({x: (ch.canvasElement.width/2+500), y: (ch.canvasElement.height/2)})
+    ball1.physic.setForce("GravitationalForce", new Vector2d({x: 0, y: 200}))
 
     let ball2 = new Ball(ch)
     ch.spriteList.push(ball2)
@@ -20,9 +20,9 @@ function mainApp() {
 
 }
 
-function collision() {
+/* function collision() {
     ch.spriteList
-}
+} */
 
 function Ball(canvasHandler) {
     let ctx = canvasHandler.ctx
