@@ -35,7 +35,24 @@ class Vector2d {
         return this.y
     }
 
-    //Function to calculate mag and angle
+    getMag() {
+        return Math.sqrt(this.x*this.x + this.y*this.y)
+    }
+
+    getAngle() {
+        if (this.x >= 0 && this.y >= 0) {
+            return Math.atan(this.y/this.x)
+        }
+        else if (this.x <= 0 && this.y >= 0) {
+            return Math.atan(this.y/this.x) + Math.PI
+        }
+        else if (this.x <= 0 && this.y <= 0) {
+            return Math.atan(this.y/this.x) + Math.PI
+        }
+        else if (this.x >= 0 && this.y <= 0) {
+            return Math.atan(this.y/this.x) + 2*Math.PI
+        }
+    }
     
     /**
      * @param {array} vectorArray Array of vector to sum
@@ -100,12 +117,11 @@ class Vector2d {
     }
 
     /**
-     * @param {Vector2d} vector1 Vector2d to divide
-     * @param {Vector2d} vector2 Constant to divide with the vector
+     * @param {Vector2d} vector1 First vector to multiply
+     * @param {Vector2d} vector2 Second vector to multiply
      */
     static vectorMultiplication(vector1, vector2) {
-        let result = new Vector2d()
-        
+        return Math.abs(vector1.getMag()) * Math.abs(vector2.getMag()) * Math.cos(Math.abs(vector2.getAngle() - vector1.getAngle()))
     }
 }
 
@@ -125,6 +141,8 @@ function CanvasHandler(params) { //To class
     this.spriteList = [] //List of sprites to draw
     this.mousePos = new Vector2d()
     this.mousedown = false //if mouse click is down
+    this.keydown = ""
+    this.keyup = ""
     
     
     this.createCanvas = () => {
@@ -134,6 +152,7 @@ function CanvasHandler(params) { //To class
         this.canvasParentNode.appendChild(this.canvasElement)
         this.canvasElement.width = parseInt(this.canvasParentNode.offsetWidth)
         this.canvasElement.height = parseInt(this.canvasParentNode.offsetHeight)
+        this.canvasElement.tabIndex = 1
         this.ctx = this.canvasElement.getContext('2d')
     }
     
@@ -141,6 +160,8 @@ function CanvasHandler(params) { //To class
         //Set mousePos
         this.canvasElement.addEventListener('mousemove', (ev) => {
             this.mousePos.setXY({x: ev.pageX, y: ev.pageY})
+            this.mousePos.maxWidth = this.canvasElement.width
+            this.mousePos.maxHeight = this.canvasElement.height
         })
         this.canvasElement.addEventListener('mousedown', (ev) => {
             this.mousedown = true
@@ -148,6 +169,15 @@ function CanvasHandler(params) { //To class
         this.canvasElement.addEventListener('mouseup', (ev) => {
             this.mousedown = false
         })
+        this.canvasElement.addEventListener('keydown', (ev) => {
+            this.keydown = ev.key
+        });
+        this.canvasElement.addEventListener('keyup', (ev) => {
+            if (this.keydown == ev.key) { //Don't change the key if we are pressing another key
+                this.keydown = ""
+            }
+            this.keyup = ev.key
+        });
     }
     
     this.init = () => {
@@ -160,10 +190,10 @@ function CanvasHandler(params) { //To class
     }
     
     this.setCanvasSize = () => {
-        if (this.tick % 100 == 0) {
+        //if (this.tick % 100 == 0) {
             this.canvasElement.width = parseInt(this.canvasParentNode.offsetWidth)
             this.canvasElement.height = parseInt(this.canvasParentNode.offsetHeight)
-        }
+        //}
     }
     
     this.updateObjects = () => {
@@ -210,6 +240,7 @@ class ForcePhysic {
         
         this.Forces = {} //{forceName: vector(N)} in Newton (kg * m/s2)
         this.resultingForce = new Vector2d()
+        this.forcesOn = true //don't update position if set to false
     }
     setForce(forceName, vector) {
         this.Forces[forceName] = vector
@@ -217,9 +248,8 @@ class ForcePhysic {
     removeForce(forceName) {
         delete this.Forces[forceName]
     }
-    /**
-     * calculating the resulting vector from all the forces
-     */
+    
+    //calculating the resulting vector from all the forces
     calculateResultingForce() {
         this.resultingForce.setXY({x: 0, y: 0})
         for (let force in this.Forces) {
@@ -232,17 +262,19 @@ class ForcePhysic {
         }
     }
     updatePos(deltaTime) {  //canvasHandler.deltaTime
-        this.calculateResultingForce()
+        if (this.forcesOn == true) {
+            this.calculateResultingForce()
 
-        let t = deltaTime / 1000
-        
-        //calculateAcceleration (a = F/m)
-        this.acceleration = Vector2d.quotientFromConst(this.resultingForce, this.mass)
-
-        //calculate final vitesse (vf = vi + at)
-        this.velocity = Vector2d.sumVectors([this.velocity, Vector2d.productFromConst(this.acceleration, t)])
-
-        //calculate delta position
-        this.position = Vector2d.sumVectors([this.position, Vector2d.productFromConst(this.velocity, t)])
+            let t = deltaTime / 1000
+            
+            //calculateAcceleration (a = F/m)
+            this.acceleration = Vector2d.quotientFromConst(this.resultingForce, this.mass)
+    
+            //calculate final vitesse (vf = vi + at)
+            this.velocity = Vector2d.sumVectors([this.velocity, Vector2d.productFromConst(this.acceleration, t)])
+    
+            //calculate delta position
+            this.position = Vector2d.sumVectors([this.position, Vector2d.productFromConst(this.velocity, t)])
+        }
     }
 }

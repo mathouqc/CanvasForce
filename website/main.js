@@ -7,34 +7,48 @@ window.onload = () => {
 }
 
 function mainApp() {
-    let ball1 = new Ball(ch)
+    let ball1 = new Ball({canvasHandler: ch, mousecontrolled: true})
     ch.spriteList.push(ball1)
 
     ball1.physic.position.setXY({x: (ch.canvasElement.width/2+500), y: (ch.canvasElement.height/2)})
     ball1.physic.setForce("GravitationalForce", new Vector2d({x: 0, y: 200}))
 
-    let ball2 = new Ball(ch)
+    let ball2 = new Ball({canvasHandler: ch})
     ch.spriteList.push(ball2)
 
     ball2.physic.position.setXY({x: (ch.canvasElement.width/2-500), y: (ch.canvasElement.height/2)})
 
+    //Test object (in mainapp)
+    function Test(ch) {
+        this.update = () => {
+            ch.ctx.font = "30px Arial"; 
+            ch.ctx.fillText("Key: " + ch.keydown, 10, 160);
+        }
+    }
+    ch.spriteList.push(new Test(ch))
+    //Test object
 }
 
-/* function collision() {
-    ch.spriteList
-} */
-
-function Ball(canvasHandler) {
+/**
+ * 
+ * @param {Object} params Object of arguments, Optional
+ * @param {canvasHandler} params.canvasHandler the canvas to draw on
+ * @param {boolean} params.mousecontrolled if the ball is mouse controlled
+ * @param {boolean} params.showForces debug the forces applied on the ball by showing them
+ * @param {string} params.color circle color
+ * @param {int} params.radius circle radius
+ */
+function Ball(params) {
+    let canvasHandler = params.canvasHandler
+    let mousecontrolled = params.hasOwnProperty("mousecontrolled") ? params.mousecontrolled : false
+    let showForces = params.hasOwnProperty("showForces") ? params.showForces : true
     let ctx = canvasHandler.ctx
-    this.radius = 50 //px
+    this.color = params.hasOwnProperty("color") ? params.color : "#000000"
+    this.radius = params.hasOwnProperty("color") ? params.color : 50 //px
     this.physic = new ForcePhysic()
-    
-    this.collision = () => {
-
-    }
 
     this.control = () => {
-        if (canvasHandler.mousedown) {
+        if (canvasHandler.mousedown && mousecontrolled == true) {
             this.physic.setForce("Mouse force", Vector2d.subVectors([canvasHandler.mousePos, this.physic.position]))
         } else {
             this.physic.removeForce("Mouse force")
@@ -42,50 +56,29 @@ function Ball(canvasHandler) {
     }
 
     this.draw = () => {
-        drawCircleVector({ctx: ctx, pos: this.physic.position, radius: this.radius, color: "#000000"})
+        drawCircleVector({ctx: ctx, pos: this.physic.position, radius: this.radius, color: this.color})
 
-        drawLineVector({ctx: ctx, pos1: this.physic.position, pos2: canvasHandler.mousePos, color: "#0FFFFF"})
-
-        //Debug force
-        ctx.font = "30px Arial"; 
-        ctx.fillText("X: " + Math.round(this.physic.resultingForce.getX()) + "N", 10, 80);
-        ctx.fillText("Y: " + Math.round(this.physic.resultingForce.getY()) + "N", 10, 120);
+        if (showForces == true) {
+            for (let force in this.physic.Forces) {
+                drawLineVector({ctx: ctx, pos1: this.physic.position, pos2: Vector2d.sumVectors([this.physic.position, this.physic.Forces[force]]), color: getColor(Math.round(force.length/2))})
+            }
+        }
     }
 
     this.update = () => {
+        if (canvasHandler.keydown == "s") {
+            this.physic.forcesOn = false
+        }
+        if (canvasHandler.keydown == "p") {
+            this.physic.forcesOn = true
+        }
+
         this.physic.updatePos(canvasHandler.deltaTime)
 
         this.draw()
 
         this.control()
-
-        this.collision()
     }
-}
-
-/**
- * 
- * @param {Object} params Object of arguments, Optional
- * @param {Context2D} params.ctx 2d context of the canvas to draw on
- * @param {int} params.x1 absciss of the first point
- * @param {int} params.x2 absciss of the second point
- * @param {int} params.y1 ordinate of the first point
- * @param {int} params.y2 ordinate of the second point
- * @param {string} params.color Hex color, Optional
- */
-function drawLine(params) {
-    let ctx = params.ctx
-    let x1 = params.x1
-    let x2 = params.x2
-    let y1 = params.y1
-    let y2 = params.y2
-    let color = params.hasOwnProperty("color") ? params.color : "#000000"
-    
-    ctx.strokeStyle = color
-    ctx.beginPath()
-    ctx.moveTo(x1, y1)
-    ctx.lineTo(x2, y2)
-    ctx.stroke()
 }
 
 /**
@@ -113,28 +106,6 @@ function drawLineVector(params) {
  * 
  * @param {Object} params Object of arguments, Optional
  * @param {Context2D} params.ctx 2d context of the canvas to draw on
- * @param {int} params.x Absciss position of the circle
- * @param {int} params.y Ordinate position of the circle
- * @param {int} params.radius Radius of the circle
- * @param {string} params.color Hex color, Optional
- */
-function drawCircle(params) {
-    let ctx = params.ctx
-    let x = params.x
-    let y = params.y
-    let radius = params.radius
-    let color = params.hasOwnProperty("color") ? params.color : "#000000"
-    
-    ctx.strokeStyle = color
-    ctx.beginPath()
-    ctx.arc(x, y, radius, 0, 2 * Math.PI)
-    ctx.stroke()
-}
-
-/**
- * 
- * @param {Object} params Object of arguments, Optional
- * @param {Context2D} params.ctx 2d context of the canvas to draw on
  * @param {Vector2d} params.pos Position vector of the circle
  * @param {int} params.radius Radius of the circle
  * @param {string} params.color Hex color, Optional
@@ -149,4 +120,16 @@ function drawCircleVector(params) {
     ctx.beginPath()
     ctx.arc(pos.getX(), pos.getY(), radius, 0, 2 * Math.PI)
     ctx.stroke()
+}
+
+function getRndInteger(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) ) + min;
+}
+
+function getColor (colorNumber) {
+    let colors = ["#003399", "#000099", "#0000CC", "#006666", "#0099CC", "#00CCFF", "#00CC99", "#6600FF", "#6600CC", "#339933", "#9999FF", "#9900FF", "#00FF00", "#CC99FF", "#CC33FF", "#003300", "#66FF66", "#FF99FF", "#FF00FF", "#CC00CC", "#009900", "#FFFF66", "#FF9966", "#FF0066", "#999966", "#FFFF00", "#FF9933", "#FF5050", "#CC0066", "#FF9900", "#FF0000"]
+    if (typeof colorNumber == "number" && colorNumber >= 0 && colorNumber <= colors.length) {
+        return colors[colorNumber]
+    }
+    return colors[getRndInteger(0, colors.length)]
 }
